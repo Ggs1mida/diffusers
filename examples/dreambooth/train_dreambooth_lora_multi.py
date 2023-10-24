@@ -41,7 +41,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PretrainedConfig
-
+import glob
 import diffusers
 from diffusers import (
     AutoencoderKL,
@@ -161,6 +161,7 @@ def parse_args(input_args=None):
     )
     parser.add_argument(
         "--instance_data_dir",
+        nargs='+',
         type=str,
         default=None,
         required=True,
@@ -176,6 +177,7 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--instance_prompt",
         type=str,
+        nargs='+',
         default=None,
         required=True,
         help="The prompt with identifier specifying the instance",
@@ -500,13 +502,23 @@ class DreamBoothDataset(Dataset):
         self.class_prompt_encoder_hidden_states = class_prompt_encoder_hidden_states
         self.tokenizer_max_length = tokenizer_max_length
 
-        self.instance_data_root = Path(instance_data_root)
-        if not self.instance_data_root.exists():
-            raise ValueError("Instance images root doesn't exists.")
+        self.instance_images_path=[]
+        self.instance_prompt=[]
+        #self.instance_data_root = Path(instance_data_root)
+        for id,dir_path in enumerate(instance_data_root):
+            self.instance_data_root=Path(dir_path)
+            if not self.instance_data_root.exists():
+                raise ValueError("Instance images root doesn't exists.")
+            imgs1=glob.glob(os.path.join(dir_path,"*.jpg"))+glob.glob(os.path.join(dir_path,"*.png"))
+            imgs=[]
+            for img in imgs1:
+                if 'depth' not in img:
+                    self.instance_images_path.append(img)
+                    self.instance_prompt.append(instance_prompt[id])
 
-        self.instance_images_path = list(Path(instance_data_root).iterdir())
+        #self.instance_images_path = list(Path(instance_data_root).iterdir())
         self.num_instance_images = len(self.instance_images_path)
-        self.instance_prompt = instance_prompt
+        #self.instance_prompt = instance_prompt
         self._length = self.num_instance_images
 
         if class_data_root is not None:
@@ -547,7 +559,7 @@ class DreamBoothDataset(Dataset):
             example["instance_prompt_ids"] = self.encoder_hidden_states
         else:
             text_inputs = tokenize_prompt(
-                self.tokenizer, self.instance_prompt, tokenizer_max_length=self.tokenizer_max_length
+                self.tokenizer, self.instance_prompt[index % self.num_instance_images], tokenizer_max_length=self.tokenizer_max_length
             )
             example["instance_prompt_ids"] = text_inputs.input_ids
             example["instance_attention_mask"] = text_inputs.attention_mask
@@ -1083,6 +1095,8 @@ def main(args):
     # We need to initialize the trackers we use, and also store our configuration.
     # The trackers initializes automatically on the main process.
     if accelerator.is_main_process:
+        args.instance_data_dir=args.instance_data_dir[0]
+        args.instance_prompt=args.instance_prompt[0]
         tracker_config = vars(copy.deepcopy(args))
         tracker_config.pop("validation_images")
         accelerator.init_trackers("dreambooth-lora", config=tracker_config)
