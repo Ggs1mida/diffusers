@@ -283,6 +283,24 @@ def parse_args(input_args=None):
         ),
     )
     parser.add_argument(
+        "--width",
+        type=int,
+        default=512,
+        help=(
+            "The resolution for input images, all the images in the train/validation dataset will be resized to this"
+            " resolution"
+        ),
+    )
+    parser.add_argument(
+        "--height",
+        type=int,
+        default=256,
+        help=(
+            "The resolution for input images, all the images in the train/validation dataset will be resized to this"
+            " resolution"
+        ),
+    )
+    parser.add_argument(
         "--train_batch_size", type=int, default=4, help="Batch size (per device) for the training dataloader."
     )
     parser.add_argument("--num_train_epochs", type=int, default=1)
@@ -594,8 +612,13 @@ def make_train_dataset(args, tokenizer, accelerator):
         )
     else:
         if args.train_data_dir is not None:
+            # dataset = load_dataset(
+            #     args.train_data_dir,
+            #     cache_dir=args.cache_dir,
+            # )
             dataset = load_dataset(
-                args.train_data_dir,
+                "json",
+                data_files = args.train_data_dir + '/metadata.json',
                 cache_dir=args.cache_dir,
             )
         # See more about loading custom images at
@@ -604,6 +627,7 @@ def make_train_dataset(args, tokenizer, accelerator):
     # Preprocessing the datasets.
     # We need to tokenize inputs and targets.
     column_names = dataset["train"].column_names
+    # print("column names: ", column_names,  dataset)
 
     # 6. Get the column names for input/target.
     if args.image_column is None:
@@ -654,29 +678,52 @@ def make_train_dataset(args, tokenizer, accelerator):
             captions, max_length=tokenizer.model_max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
         return inputs.input_ids
-
+    resolution = (args.height, args.width)
     image_transforms = transforms.Compose(
         [
-            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
+            transforms.Resize(resolution, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop(resolution),
             transforms.ToTensor(),
-            transforms.Normalize([0.5], [0.5]),
+            # transforms.Normalize([0.5], [0.5]),
         ]
     )
 
     conditioning_image_transforms = transforms.Compose(
         [
-            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
+            transforms.Resize(resolution, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop(resolution),
             transforms.ToTensor(),
         ]
     )
 
-    def preprocess_train(examples):
-        images = [image.convert("RGB") for image in examples[image_column]]
-        images = [image_transforms(image) for image in images]
+    # def preprocess_train(examples):
+    #     print(image_column, examples[image_column])
+    #     images = [image.convert("RGB") for image in examples[image_column]]
+    #     images = [image_transforms(image) for image in images]
 
-        conditioning_images = [image.convert("RGB") for image in examples[conditioning_image_column]]
+    #     conditioning_images = [image.convert("RGB") for image in examples[conditioning_image_column]]
+    #     conditioning_images = [conditioning_image_transforms(image) for image in conditioning_images]
+
+    #     examples["pixel_values"] = images
+    #     examples["conditioning_pixel_values"] = conditioning_images
+    #     examples["input_ids"] = tokenize_captions(examples)
+
+    #     return examples
+    
+    def preprocess_train(examples):
+        images = [Image.open(os.path.join(args.train_data_dir, image)).convert("RGB") for image in examples[image_column]]
+        images = [image_transforms(image) for image in images]
+        # print(images[0].shape)
+        # save_image = images[0].clone()
+        # image_array = save_image.permute(1, 2, 0).cpu().detach().numpy()
+        # print(image_array.shape)
+        # image_pil = Image.fromarray((image_array * 255).astype(np.uint8))
+
+        # # Save the image
+        # image_pil.save('output_image.jpg')
+        # print("save successfully")
+
+        conditioning_images = [Image.open(os.path.join(args.train_data_dir, image)).convert("RGB") for image in examples[conditioning_image_column]]
         conditioning_images = [conditioning_image_transforms(image) for image in conditioning_images]
 
         examples["pixel_values"] = images
@@ -776,11 +823,17 @@ def main(args):
 
     if args.controlnet_model_name_or_path:
         logger.info("Loading existing controlnet weights")
+        # controlnet = ControlNetModel.from_pretrained("ghoskno/Color-Canny-Controlnet-model", torch_dtype=torch.float16)
         controlnet = ControlNetModel.from_pretrained(args.controlnet_model_name_or_path)
     else:
         logger.info("Initializing controlnet weights from unet")
         controlnet = ControlNetModel.from_unet(unet)
 
+    controlnet = ControlNetModel.from_pretrained("ghoskno/Color-Canny-Controlnet-model")
+    # add lora_path
+    lora_path=r'/research/GDA/xuningli/cross-view/ground_view_generation/outputs/jax_7868_pano_lora/checkpoint-70000'
+    unet.load_attn_procs(lora_path)
+    
     # `accelerate` 0.16.0 will have better support for customized saving
     if version.parse(accelerate.__version__) >= version.parse("0.16.0"):
         # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
@@ -1075,8 +1128,8 @@ def main(args):
                                 for removing_checkpoint in removing_checkpoints:
                                     removing_checkpoint = os.path.join(args.output_dir, removing_checkpoint)
                                     shutil.rmtree(removing_checkpoint)
-
                         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+                        logger.info(f"Start to save state to {save_path}")
                         accelerator.save_state(save_path)
                         logger.info(f"Saved state to {save_path}")
 

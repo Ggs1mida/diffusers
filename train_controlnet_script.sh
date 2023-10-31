@@ -1,0 +1,18 @@
+accelerate launch examples/controlnet/train_controlnet.py \
+ --pretrained_model_name_or_path="stabilityai/stable-diffusion-2-1-base" \
+ --output_dir="model_out" \
+ --train_data_dir=./data_process/satellite_pair \
+ --conditioning_image_column=conditional_file_name \
+ --image_column=file_name \
+ --caption_column=captioning \
+ --resolution=512 \
+ --learning_rate=1e-5 \
+ --validation_image "./data_process/satellite_pair/0.9609375_JAX_15748_SAT_RGB.png" "./data_process/satellite_pair/0.95703125_JAX_15790_SAT_RGB.png" "./data_process/satellite_pair/0.95074462890625_JAX_10920_SAT_RGB.png" \
+ --validation_prompt "street-view, panorama image, high resolution" \
+ --train_batch_size=4 \
+ --num_train_epochs=3 \
+ --tracker_project_name="controlnet" \
+ --enable_xformers_memory_efficient_attention \
+ --checkpointing_steps=5000 \
+ --validation_steps=5000 \
+ --report_to wandb \
