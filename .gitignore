@@ -170,6 +170,9 @@ tags
 # dependencies
 /transformers
 
+# output
+/output
+/model_out
 # ruff
 .ruff_cache
 
