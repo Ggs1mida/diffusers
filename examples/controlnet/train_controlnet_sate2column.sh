@@ -1,0 +1,17 @@
+python train_controlnet.py \
+ --pretrained_model_name_or_path="runwayml/stable-diffusion-v1-5" \
+ --output_dir="./out_sate_rgb" \
+ --train_data_dir='/research/GDA/xuningli/cross-view/ground_view_generation/data' \
+ --conditioning_image_column="condition" \
+ --caption_column="text" \
+ --lora_path='/research/GDA/xuningli/cross-view/ground_view_generation/outputs/jax_7868_pano_lora/checkpoint-70000' \
+ --resolution=512 \
+ --validation_image "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/sate_rgb_2column/JAX_068 82_sate_rgb.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/sate_rgb_2column/JAX_214 5_sate_rgb.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/sate_rgb_2column/JAX_171 71_sate_rgb.png" \
+ --validation_prompt="street-view, panorama image, high resolution" \
+ --train_batch_size=2 \
+ --max_train_steps=60001 \
+ --tracker_project_name="controlnet-sate-rgb" \
+ --enable_xformers_memory_efficient_attention \
+ --checkpointing_steps=5000 \
+ --validation_steps=200 \
+ --report_to wandb

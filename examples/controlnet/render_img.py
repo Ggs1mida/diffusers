@@ -181,7 +181,6 @@ ada_palette = np.asarray([
       [92, 0, 255],
   ])
 
-
 def image_grid(imgs, rows, cols):
     assert len(imgs) == rows * cols
 
@@ -989,9 +988,6 @@ def render_controlnet_lora_lineart(img_path,prompt,negative_prompt,lora_path,out
     #writer.add_images('output',imgs,dataformats='NCHW')
     #image_grid(output.images, 2, 2)
 
-
-
-
 def main():
     prompt="street-view, panorama image, high resolution"
     negetive_prompt="watermark, blury, artifacts, glare "
@@ -1022,20 +1018,20 @@ def main():
     #                            )
 
     #render based on controlnet-depth
-    # render_controlnet_lora_depth(r'J:\xuningli\cross-view\ground_view_generation\data\tmp\fourcity\JAX_10783_STREET_DEPTH.jpg',
+    # render_controlnet_lora_depth(r'E:\data\jax\render\251\google_street\JAX_251 98.depthmap.jpg',
     #                             True,
-    #                             "street-view, panorama image, high resolution, hong kong",
+    #                             "street-view, panorama image, high resolution",
     #                             negetive_prompt,
     #                             lora_path,
-    #                             r'J:\xuningli\cross-view\ground_view_generation\data\tmp\fourcity\JAX_10783_STREET_hongkong.jpg'
+    #                             r'J:\xuningli\cross-view\ground_view_generation\data\tmp\JAX_251_98_depth.jpg'
     #                            )
 
     #render color & canny
-    render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\tmp\sat_8170.png',
-                                r'J:\xuningli\cross-view\ground_view_generation\data\tmp\sat_8170_out_cannycolor.jpg',
-                                lora_path,
-                                prompt,
-                                negetive_prompt)
+    # render_controlnet_canny_color(r'E:\data\jax\render\251\sat\JAX_251 98.png',
+    #                             r'J:\xuningli\cross-view\ground_view_generation\data\tmp\JAX_251_98_out.jpg',
+    #                             lora_path,
+    #                             prompt,
+    #                             negetive_prompt)
 
     #render lineart
     # render_controlnet_lora_lineart(r'J:\xuningli\cross-view\ground_view_generation\data\tmp\sat_8170.png',

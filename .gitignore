@@ -174,3 +174,6 @@ tags
 .ruff_cache
 
 wandb
+
+/examples/controlnet/out_*
+/examples/controlnet/wandb

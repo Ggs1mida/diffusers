@@ -255,6 +255,16 @@ def parse_args(input_args=None):
         ),
     )
     parser.add_argument(
+        "--lora_path",
+        type=str,
+        default=None,
+        required=False,
+        help=(
+            "Revision of pretrained model identifier from huggingface.co/models. Trainable model components should be"
+            " float32 precision."
+        ),
+    )
+    parser.add_argument(
         "--tokenizer_name",
         type=str,
         default=None,
@@ -594,16 +604,39 @@ def make_train_dataset(args, tokenizer, accelerator):
         )
     else:
         if args.train_data_dir is not None:
-            dataset = load_dataset(
-                args.train_data_dir,
-                cache_dir=args.cache_dir,
-            )
+            import glob
+            from datasets import Dataset,Image
+            train_list=os.path.join(args.train_data_dir,"dataset","rgb_seg_pair_train.txt")
+            data_in=open(train_list,'r')
+            lines=data_in.readlines()
+            imgs=[]
+            conditions=[]
+            texts=[]
+            for line in lines:
+                line=line.rstrip('\n')
+                imgs.append(os.path.join(args.train_data_dir,"dataset","street_rgb",line+"_street_rgb.jpg"))
+                #conditions.append(os.path.join(args.train_data_dir,"proj_rgb",line+"_proj_rgb.png"))
+                conditions.append(os.path.join(args.train_data_dir,"experiment","train","facade_lines",line+"_lines.png"))
+                #onditions.append(os.path.join(args.train_data_dir,"dataset","sate_rgb_2column",line+"_sate_rgb.png"))
+                texts.append(args.validation_prompt)
+
+            data_dict={}
+            data_dict['image']=imgs
+            data_dict['condition']=conditions
+            data_dict['text']=texts
+            dataset = Dataset.from_dict(data_dict)
+            dataset=dataset.cast_column("image", Image())
+            dataset=dataset.cast_column("condition", Image())
+            # dataset = load_dataset(
+            #     args.train_data_dir,
+            #     cache_dir=args.cache_dir,
+            # )
         # See more about loading custom images at
         # https://huggingface.co/docs/datasets/v2.0.0/en/dataset_script
 
     # Preprocessing the datasets.
     # We need to tokenize inputs and targets.
-    column_names = dataset["train"].column_names
+    column_names = dataset.column_names
 
     # 6. Get the column names for input/target.
     if args.image_column is None:
@@ -615,7 +648,6 @@ def make_train_dataset(args, tokenizer, accelerator):
             raise ValueError(
                 f"`--image_column` value '{args.image_column}' not found in dataset columns. Dataset columns are: {', '.join(column_names)}"
             )
-
     if args.caption_column is None:
         caption_column = column_names[1]
         logger.info(f"caption column defaulting to {caption_column}")
@@ -657,8 +689,8 @@ def make_train_dataset(args, tokenizer, accelerator):
 
     image_transforms = transforms.Compose(
         [
-            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
+            transforms.Resize((args.resolution/2,args.resolution), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop((args.resolution/2,args.resolution)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
         ]
@@ -666,8 +698,8 @@ def make_train_dataset(args, tokenizer, accelerator):
 
     conditioning_image_transforms = transforms.Compose(
         [
-            transforms.Resize(args.resolution, interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop(args.resolution),
+            transforms.Resize((args.resolution/2,args.resolution), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop((args.resolution/2,args.resolution)),
             transforms.ToTensor(),
         ]
     )
@@ -687,9 +719,9 @@ def make_train_dataset(args, tokenizer, accelerator):
 
     with accelerator.main_process_first():
         if args.max_train_samples is not None:
-            dataset["train"] = dataset["train"].shuffle(seed=args.seed).select(range(args.max_train_samples))
+            dataset = dataset.shuffle(seed=args.seed).select(range(args.max_train_samples))
         # Set the training transforms
-        train_dataset = dataset["train"].with_transform(preprocess_train)
+        train_dataset = dataset.with_transform(preprocess_train)
 
     return train_dataset
 
@@ -780,6 +812,11 @@ def main(args):
     else:
         logger.info("Initializing controlnet weights from unet")
         controlnet = ControlNetModel.from_unet(unet)
+
+    # add lora_path
+    if args.lora_path:
+        print("load lora path")
+        unet.load_attn_procs(args.lora_path)
 
     # `accelerate` 0.16.0 will have better support for customized saving
     if version.parse(accelerate.__version__) >= version.parse("0.16.0"):
