@@ -47,7 +47,7 @@ class Dataset(torch.utils.data.Dataset):
             for line in lines:
                 line=line.rstrip('\n')
                 pred_paths=glob.glob(os.path.join(ours_sate_semantic,line+'_*.png'))
-                pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                pred_paths=[file_path for file_path in pred_paths if "_seg.png" not in file_path]
                 self.pred_paths.append(pred_paths)
                 semantic_list=[]
                 for pred_path in pred_paths:
