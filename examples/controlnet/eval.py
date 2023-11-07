@@ -142,9 +142,14 @@ def segment_dir(in_dir,render_list):
     model = OneFormerForUniversalSegmentation.from_pretrained("shi-labs/oneformer_ade20k_swin_large")
     data_in=open(render_list,'r')
     lines=data_in.readlines()
-    for line in lines:
+    for id,line in enumerate(lines):
         img_paths=glob.glob(os.path.join(in_dir,line.rstrip('\n')+"_*.png"))
+        print(id)
         for img_path in img_paths:
+            if 'seg.png' in img_path:
+                continue
+            if os.path.exists(img_path[:-4]+"_seg.png"):
+                continue
             image = Image.open(img_path)
             semantic_inputs = processor(images=image, task_inputs=["semantic"], return_tensors="pt")
             semantic_outputs = model(**semantic_inputs)
@@ -222,7 +227,8 @@ if __name__ == "__main__":
     #get images    
     #segment_gt(r'E:\data\jax\render\dataset\street_rgb',r'J:\xuningli\cross-view\ground_view_generation\data\experiment\gt',r'E:\data\jax\render\dataset\rgb_seg_pair_train.txt')
 
-    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line',render_list)
+    #segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line',render_list)
+    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sate_rgb_seg',render_list)
 
     #eval_building_perpix(fold_pred,fold_gt,render_list)
 

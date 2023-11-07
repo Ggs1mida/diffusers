@@ -43,7 +43,7 @@ class Dataset(torch.utils.data.Dataset):
                 self.pred_semantic_paths.append(semantic_list)
                 self.gt_paths.append(os.path.join(gt_dir,line+".jpg"))
                 self.gt_semantic_paths.append(os.path.join(gt_dir,line+"_seg.png"))
-        elif name=='ours_sate_semantic':
+        elif name=='sate_rgb_seg':
             for line in lines:
                 line=line.rstrip('\n')
                 pred_paths=glob.glob(os.path.join(ours_sate_semantic,line+'_*.png'))
@@ -65,8 +65,8 @@ class Dataset(torch.utils.data.Dataset):
         'Generates one sample of data'
         return self.pred_paths[index],self.pred_semantic_paths[index],self.gt_paths[index],self.gt_semantic_paths[index]
 
-dataset_names=['ours_color_lines','ours_color','ours_sate_semantic']
-dataset=Dataset(dataset_names[1])
+dataset_names=['ours_color_lines','ours_color','sate_rgb_seg']
+dataset=Dataset(dataset_names[2])
 dataloader = torch.utils.data.DataLoader(dataset)
 for id,data in enumerate(dataloader):
     pred_path=data[0]
