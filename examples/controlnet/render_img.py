@@ -341,10 +341,10 @@ def render_controlnet_canny_color(in_img,out_img,lora_path,prompt,negative_promp
     #image=load_image("https://huggingface.co/datasets/YiYiXu/controlnet-testing/resolve/main/yoga1.jpeg")
     image = np.array(image)
 
-    low_threshold = 100
-    high_threshold = 200
+    # low_threshold = 100
+    # high_threshold = 200
 
-    canny_image = cv2.Canny(image, low_threshold, high_threshold)
+    # canny_image = cv2.Canny(image, low_threshold, high_threshold)
     #canny_image = canny_image[:, :, None]
     #canny_image  = np.concatenate([canny_image , canny_image , canny_image ], axis=2)
 
@@ -361,7 +361,7 @@ def render_controlnet_canny_color(in_img,out_img,lora_path,prompt,negative_promp
     pipe.unet.load_attn_procs(lora_path)
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
-    pipe.enable_xformers_memory_efficient_attention()
+    #pipe.enable_xformers_memory_efficient_attention()
 
     num_img=8
 
@@ -381,20 +381,20 @@ def render_controlnet_canny_color(in_img,out_img,lora_path,prompt,negative_promp
     # image_grid = make_grid(images, rows=4, cols=2)
     # image_grid.save(out_img)
 
-    images=[]
-    for i in range(num_img):
-        generator = [torch.Generator(device="cpu").manual_seed(i)]
-        image = pipe(
-            prompt=prompt,
-            image=processed_image,
-            negative_prompt=negative_prompt,
-            num_inference_steps=20,
-            generator=generator,
-            cross_attention_kwargs={"scale": 0},
-        ).images[0]
-        images.append(image)
-    image_grid = make_grid(images, rows=4, cols=2)
-    image_grid.save(out_img[:-4]+"_cannycolor_nolora.jpg")
+    # images=[]
+    # for i in range(num_img):
+    #     generator = [torch.Generator(device="cpu").manual_seed(i)]
+    #     image = pipe(
+    #         prompt=prompt,
+    #         image=processed_image,
+    #         negative_prompt=negative_prompt,
+    #         num_inference_steps=20,
+    #         generator=generator,
+    #         cross_attention_kwargs={"scale": 0},
+    #     ).images[0]
+    #     images.append(image)
+    # image_grid = make_grid(images, rows=4, cols=2)
+    # image_grid.save(out_img[:-4]+"_cannycolor_nolora.jpg")
 
     images=[]
     for i in range(num_img):
@@ -991,8 +991,8 @@ def render_controlnet_lora_lineart(img_path,prompt,negative_prompt,lora_path,out
 def main():
     prompt="street-view, panorama image, high resolution"
     negetive_prompt="watermark, blury, artifacts, glare "
-    lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\jax_7868_pano_lora\checkpoint-70000'
-    #lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\four_city\checkpoint-90000'
+    #lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\jax_7868_pano_lora\checkpoint-70000'
+    lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\four_city\checkpoint-90000'
     
     # render based on only lora model
     # render_lora("street-view, panorama image, high resolution, hong kong",
@@ -1027,11 +1027,16 @@ def main():
     #                            )
 
     #render color & canny
-    # render_controlnet_canny_color(r'E:\data\jax\render\251\sat\JAX_251 98.png',
-    #                             r'J:\xuningli\cross-view\ground_view_generation\data\tmp\JAX_251_98_out.jpg',
-    #                             lora_path,
-    #                             prompt,
-    #                             negetive_prompt)
+    render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
+                                r'E:\data\tmp\uae.png',
+                                lora_path,
+                                "street-view, panorama image, high resolution, dubai, united arab emirates",
+                                negetive_prompt)
+    render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
+                                r'E:\data\tmp\paris.png',
+                                lora_path,
+                                "street-view, panorama image, high resolution, paris, france",
+                                negetive_prompt)
 
     #render lineart
     # render_controlnet_lora_lineart(r'J:\xuningli\cross-view\ground_view_generation\data\tmp\sat_8170.png',

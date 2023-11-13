@@ -10,7 +10,7 @@ import glob
 from skimage import io, color
 from skimage.filters import roberts, sobel_h, sobel_v
 from skimage.metrics import structural_similarity as ssim
-
+from dataloader import Dataset
 from os import listdir
 from os.path import isfile, join
 import re
@@ -143,7 +143,7 @@ def segment_dir(in_dir,render_list):
     data_in=open(render_list,'r')
     lines=data_in.readlines()
     for id,line in enumerate(lines):
-        img_paths=glob.glob(os.path.join(in_dir,line.rstrip('\n')+"_*.png"))
+        img_paths=glob.glob(os.path.join(in_dir,line.rstrip('\n')+"_sate_rgb_fake_B_final.png"))
         print(id)
         for img_path in img_paths:
             if 'seg.png' in img_path:
@@ -219,18 +219,121 @@ def eval_building_perpix(fold_pred,fold_gt,render_list):
     np.savetxt(os.path.join(fold_pred,"ssim_building.txt"),SSIM_arr)
     np.savetxt(os.path.join(fold_pred,"l1_building.txt"),L1_arr)
 
+def extract_into_same_dir(semantics_dir,proj_rgb_dir,proj_rgb_line_dir,gt_dir,out_dir,render_list):
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    for line in lines:
+        name=line.rstrip('\n')
+        imgs=glob.glob(os.path.join(semantics_dir,name+"*.png"))
+        for img in imgs:
+            if "seg.png" not in img:
+                img_name=os.path.basename(img)
+                shutil.copyfile(img,os.path.join(out_dir,img_name[:-4]+"_semantics.png"))
+
+        imgs=glob.glob(os.path.join(proj_rgb_dir,name+"*.png"))
+        for img in imgs:
+            if "seg.png" not in img:
+                img_name=os.path.basename(img)
+                shutil.copyfile(img,os.path.join(out_dir,img_name[:-4]+"_proj_rgb.png"))
+
+        imgs=glob.glob(os.path.join(proj_rgb_line_dir,name+"*.png"))
+        for img in imgs:
+            if "seg.png" not in img:
+                img_name=os.path.basename(img)
+                shutil.copyfile(img,os.path.join(out_dir,img_name[:-4]+"_proj_rgb_line.png"))
+
+        imgs=glob.glob(os.path.join(gt_dir,name+"*.jpg"))
+        for img in imgs:
+            if "seg.png" not in img:
+                img_name=os.path.basename(img)
+                shutil.copyfile(img,os.path.join(out_dir,img_name[:-4]+"_street_rgb.jpg"))
+    
+    data_in.close()
+
+def extract_into_same_dir_sota(semantics_dir,sate_dir,pano_dir,crossmlp_dir,out_dir,render_list):
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    for line in lines:
+        name=line.rstrip('\n')
+        img=os.path.join(semantics_dir,name+"_proj_label.png")
+        shutil.copyfile(img,os.path.join(out_dir,name+"_proj_label.png"))
+
+        img=os.path.join(sate_dir,name+"_sate_rgb.png")
+        shutil.copyfile(img,os.path.join(out_dir,name+"_sate_rgb.png"))
+
+        img=os.path.join(pano_dir,name+"_sate_rgb_fake_B_final.png")
+        shutil.copyfile(img,os.path.join(out_dir,name+"_pano.png"))
+
+        img=os.path.join(crossmlp_dir,name+"_sate_rgb_I.png")
+        shutil.copyfile(img,os.path.join(out_dir,name+"_crossmlp.png"))
+    
+    data_in.close()
+
+
+def eval_psnr_ssim_sharp():
+    out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
+    dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+
+    for data_name in dataset_names:
+        ssim_arr=np.zeros(446)
+        psnr_arr=np.zeros(446)
+        l1_arr=np.zeros(446)
+        dataset=Dataset(data_name)
+        dataloader = torch.utils.data.DataLoader(dataset) 
+        for id,data in enumerate(dataloader):
+            pred_path=data[0][0]
+            pred_semantic_path=data[1]
+            gt_path=data[2][0]
+            gt_semantic_path=data[3]
+
+            img_gt = cv2.imread(gt_path).astype(np.float32)/255.0
+            img_gt_gray = cv2.imread(gt_path,0).astype(np.float32)/255.0
+            img_pred = cv2.imread(pred_path).astype(np.float32)/255.0
+            img_pred_gray = cv2.imread(pred_path,0).astype(np.float32)/255.0
+            PSNR_score = PSNR(img_gt, img_pred)
+            SSIM_score = SSIM(img_gt, img_pred)
+            L1_score = L1difference(img_gt_gray, img_pred_gray)
+            psnr_arr[id]=PSNR_score
+            ssim_arr[id]=SSIM_score
+            l1_arr[id]=L1_score
+        np.savetxt(os.path.join(out_dir,"{}_psnr.txt").format(data_name),psnr_arr)
+        np.savetxt(os.path.join(out_dir,"{}_ssim.txt").format(data_name),ssim_arr)
+        np.savetxt(os.path.join(out_dir,"{}_l1sharp.txt").format(data_name),l1_arr)
+
+        print("{} : PSNR: {}, SSIM: {}, L1:{} ".format(data_name,np.mean(psnr_arr),np.mean(ssim_arr),np.mean(l1_arr)))
+
+
+
+
+
 if __name__ == "__main__":
     fold_pred = r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb'
     fold_gt = r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_gt'
+    #render_list=r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_facade_pair.txt'
     render_list=r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_pair_test.txt'
 
     #get images    
     #segment_gt(r'E:\data\jax\render\dataset\street_rgb',r'J:\xuningli\cross-view\ground_view_generation\data\experiment\gt',r'E:\data\jax\render\dataset\rgb_seg_pair_train.txt')
 
-    #segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line',render_list)
-    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sate_rgb_seg',render_list)
+    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_semantics',render_list)
+    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_rgb',render_list)
+    # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_semantics',render_list)
+    # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_rgb',render_list)
 
+    # extract_into_same_dir_sota(r'J:\xuningli\cross-view\ground_view_generation\data\dataset\proj_label',
+    #     r'J:\xuningli\cross-view\ground_view_generation\data\dataset\sate_rgb',
+    #                            r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_semantics',
+    #                            r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_semantics',
+    #                            r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sota_select',
+    #                            r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sota_select\list.txt')
+    # extract_into_same_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sate_rgb_seg',
+    # r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb',
+    # r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line',
+    # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\street_rgb',
+    # r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation',
+    # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_facade_pair.txt')
     #eval_building_perpix(fold_pred,fold_gt,render_list)
+    #eval_psnr_ssim_sharp()
 
 
 

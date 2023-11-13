@@ -524,8 +524,6 @@ class DreamBoothDataset(Dataset):
 
         self.image_transforms = transforms.Compose(
             [
-                transforms.Resize((int(size/2),size), interpolation=transforms.InterpolationMode.BILINEAR),
-                transforms.CenterCrop((int(size/2),size)) if center_crop else transforms.RandomCrop((int(size/2),size)),
                 transforms.ToTensor(),
                 transforms.Normalize([0.5], [0.5]),
             ]
