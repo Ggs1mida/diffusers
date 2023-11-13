@@ -1,23 +1,17 @@
-import os
-import sys
 import numpy as np
 import torch
-import torchvision
 from PIL import Image
-from torch.autograd import Variable
-from torchvision import transforms, utils
 import glob
-from skimage import io, color
-from skimage.filters import roberts, sobel_h, sobel_v
+from skimage import  color
+from skimage.filters import sobel_h, sobel_v
 from skimage.metrics import structural_similarity as ssim
 from dataloader import Dataset
-from os import listdir
-from os.path import isfile, join
-import re
 import cv2
 import shutil
 
 def PSNR(true_frame, pred_frame):
+    true_frame=true_frame.astype(np.float32)/255.0
+    pred_frame=pred_frame.astype(np.float32)/255.0
     eps = 0.0001
     prediction_error = 0.0
     [h,w,c] = true_frame.shape
@@ -32,21 +26,36 @@ def PSNR(true_frame, pred_frame):
     return prediction_error
 
 def SSIM(img1, img2):
+    img1=img1.astype(np.float32)/255.0
+    img2=img2.astype(np.float32)/255.0
     [h,w,c] = img1.shape
     if c > 2:
         img1 = color.rgb2yuv(img1)
         img1 = img1[:,:,0]
         img2 = color.rgb2yuv(img2)
         img2 = img2[:,:,0]
+    else:
+        img1 = img1[:,:,0]
+        img2 = img2[:,:,0]
     score = ssim(img1, img2,data_range=1.0)
     return score
+
+def miou(img1,img2):
+    mask1=img1!=0
+    mask2=img2!=0
+    intersect=np.sum(np.logical_and(mask1,mask2))
+    union=np.sum(np.logical_or(mask1,mask2))
+    return intersect/union,intersect,union
 
 def L1difference(img_true,img_pred):
     [h,w] = img_true.shape
     true_gx = sobel_h(img_true)/4.0
     true_gy = sobel_v(img_true)/4.0
+
+
     pred_gx = sobel_h(img_pred)/4.0
     pred_gy = sobel_v(img_pred)/4.0
+
     dx = np.abs(true_gx-pred_gx)
     dy = np.abs(true_gy-pred_gy)
     prediction_error = np.sum(dx+dy)
@@ -269,8 +278,94 @@ def extract_into_same_dir_sota(semantics_dir,sate_dir,pano_dir,crossmlp_dir,out_
     
     data_in.close()
 
-
 def eval_psnr_ssim_sharp():
+    import os
+    out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
+    #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+
+    for data_name in dataset_names:
+        ssim_list=[]
+        psnr_list=[]
+        ssim_canny_list=[]
+        psnr_canny_list=[]
+        dataset=Dataset(data_name)
+        dataloader = torch.utils.data.DataLoader(dataset) 
+        for id,data in enumerate(dataloader):
+            pred_paths=data[0]
+            gt_path=data[2][0]
+
+            img_gt = cv2.imread(gt_path)
+            gt_edge = np.expand_dims(cv2.Canny(img_gt,255,255),axis=2)
+            p1_list=[]
+            s1_list=[]
+            p2_list=[]
+            s2_list=[]
+            for pred_path in pred_paths:
+                pred_path=pred_path[0]
+                img_pred = cv2.imread(pred_path)
+                pred_edge = np.expand_dims(cv2.Canny(img_pred,255,255),axis=2)
+
+                p1 = PSNR(img_gt, img_pred)
+                s1 = SSIM(img_gt, img_pred)
+                
+                p2 = PSNR(gt_edge, pred_edge)
+                s2 = SSIM(gt_edge, pred_edge)
+                p1_list.append(p1)
+                p2_list.append(p2)
+                s1_list.append(s1)
+                s2_list.append(s2)
+            ssim_list.append(s1_list)
+            psnr_list.append(p1_list)
+            ssim_canny_list.append(s2_list)
+            psnr_canny_list.append(p2_list)
+
+        ssim_arr=np.array(ssim_list)
+        ssim_canny_arr=np.array(ssim_canny_list)
+        psnr_arr=np.array(psnr_list)
+        psnr_canny_arr=np.array(psnr_canny_list)
+
+        np.savetxt(os.path.join(out_dir,"{}_psnr.txt").format(data_name),psnr_arr)
+        np.savetxt(os.path.join(out_dir,"{}_ssim.txt").format(data_name),ssim_arr)
+
+        np.savetxt(os.path.join(out_dir,"{}_canny_psnr.txt").format(data_name),psnr_canny_arr)
+        np.savetxt(os.path.join(out_dir,"{}_canny_ssim.txt").format(data_name),ssim_canny_arr)
+
+        print("{} : PSNR: {}, SSIM: {}, PSNR canny: {}, SSIM canny: {} ".format(data_name,np.mean(psnr_arr),np.mean(ssim_arr),np.mean(psnr_canny_arr),np.mean(ssim_canny_arr)))
+
+def eval_semantic():
+    import os
+    out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
+    dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+
+    for data_name in dataset_names:
+        score_list=[]
+        dataset=Dataset(data_name)
+        dataloader = torch.utils.data.DataLoader(dataset) 
+        for id,data in enumerate(dataloader):
+            pred_paths=data[0]
+            seg_paths=data[1]
+            gt_seg_path=data[3][0]
+            gt_path=data[2][0]
+
+            img_gt = cv2.imread(gt_seg_path)
+            scores=[]
+
+            for seg_path in seg_paths:
+                img_pred = cv2.imread(seg_path[0])
+                score=np.mean(img_pred==img_gt)
+                scores.append(score)
+            score_list.append(scores)
+
+        score_arr=np.array(score_list)
+
+        np.savetxt(os.path.join(out_dir,"{}_semantic.txt").format(data_name),score_arr)
+
+        print("{} : semantic: {}".format(data_name,np.mean(score_arr)))
+
+
+def eval_iou():
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
     dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
 
@@ -303,9 +398,6 @@ def eval_psnr_ssim_sharp():
         print("{} : PSNR: {}, SSIM: {}, L1:{} ".format(data_name,np.mean(psnr_arr),np.mean(ssim_arr),np.mean(l1_arr)))
 
 
-
-
-
 if __name__ == "__main__":
     fold_pred = r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb'
     fold_gt = r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_gt'
@@ -315,8 +407,8 @@ if __name__ == "__main__":
     #get images    
     #segment_gt(r'E:\data\jax\render\dataset\street_rgb',r'J:\xuningli\cross-view\ground_view_generation\data\experiment\gt',r'E:\data\jax\render\dataset\rgb_seg_pair_train.txt')
 
-    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_semantics',render_list)
-    segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_rgb',render_list)
+    # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_semantics',render_list)
+    # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_rgb',render_list)
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_semantics',render_list)
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_rgb',render_list)
 
@@ -334,6 +426,23 @@ if __name__ == "__main__":
     # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_facade_pair.txt')
     #eval_building_perpix(fold_pred,fold_gt,render_list)
     #eval_psnr_ssim_sharp()
+    eval_semantic()
+    # img1=r'E:\tmp\ours_canny.png'
+    # img2=r'E:\tmp\panogan_canny.png'
+    # img_gt=r'E:\tmp\gt_canny.png'
+
+    # ours = cv2.imread(img1)
+    # panogan = cv2.imread(img2)
+    # gt = cv2.imread(img_gt)
+    # s1=SSIM(ours,gt)
+    # s2=SSIM(panogan,gt)
+    # p1=PSNR(ours,gt)
+    # p2=PSNR(panogan,gt)
+    # iou1,i1,u1=miou(ours,gt)
+    # iou2,i2,u2=miou(panogan,gt)
+
+    # a=1
+
 
 
 

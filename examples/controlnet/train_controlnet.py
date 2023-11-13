@@ -606,7 +606,7 @@ def make_train_dataset(args, tokenizer, accelerator):
         if args.train_data_dir is not None:
             import glob
             from datasets import Dataset,Image
-            train_list=os.path.join(args.train_data_dir,"dataset","rgb_seg_pair_train.txt")
+            train_list=os.path.join(args.train_data_dir,"dataset","rgb_seg_pair_train_3535.txt")
             data_in=open(train_list,'r')
             lines=data_in.readlines()
             imgs=[]
@@ -615,8 +615,8 @@ def make_train_dataset(args, tokenizer, accelerator):
             for line in lines:
                 line=line.rstrip('\n')
                 imgs.append(os.path.join(args.train_data_dir,"dataset","street_rgb",line+"_street_rgb.jpg"))
-                #conditions.append(os.path.join(args.train_data_dir,"proj_rgb",line+"_proj_rgb.png"))
-                conditions.append(os.path.join(args.train_data_dir,"experiment","train","facade_lines",line+"_lines.png"))
+                conditions.append(os.path.join(args.train_data_dir,"dataset","proj_rgb",line+"_proj_rgb.png"))
+                #conditions.append(os.path.join(args.train_data_dir,"experiment","train","facade_lines",line+"_lines.png"))
                 #onditions.append(os.path.join(args.train_data_dir,"dataset","sate_rgb_2column",line+"_sate_rgb.png"))
                 texts.append(args.validation_prompt)
 
@@ -689,8 +689,6 @@ def make_train_dataset(args, tokenizer, accelerator):
 
     image_transforms = transforms.Compose(
         [
-            transforms.Resize((args.resolution/2,args.resolution), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop((args.resolution/2,args.resolution)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
         ]
@@ -698,8 +696,6 @@ def make_train_dataset(args, tokenizer, accelerator):
 
     conditioning_image_transforms = transforms.Compose(
         [
-            transforms.Resize((args.resolution/2,args.resolution), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.CenterCrop((args.resolution/2,args.resolution)),
             transforms.ToTensor(),
         ]
     )

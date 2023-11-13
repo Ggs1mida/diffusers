@@ -1,18 +1,17 @@
 python train_controlnet.py \
  --pretrained_model_name_or_path="runwayml/stable-diffusion-v1-5" \
- --controlnet_model_name_or_path="lllyasviel/control_v11p_sd15_seg" \
- --output_dir="./out_proj_label" \
+ --output_dir="./out_proj_rgb_3535_fromscratch" \
  --train_data_dir='/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset' \
  --conditioning_image_column="condition" \
  --caption_column="text" \
- --lora_path='/research/GDA/xuningli/cross-view/ground_view_generation/outputs/jax_7868_pano_lora/checkpoint-70000' \
+ --lora_path='/research/GDA/xuningli/cross-view/ground_view_generation/code/outputs/jax_3535/checkpoint-55000' \
  --resolution=512 \
- --validation_image "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_label/JAX_068 82_proj_label.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_label/JAX_214 5_proj_label.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_label/JAX_171 71_proj_label.png" \
- --validation_prompt="street-view, panorama image, high resolution" \
+ --validation_image "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_rgb/JAX_068 82_proj_rgb.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_rgb/JAX_214 5_proj_rgb.png" "/research/GDA/xuningli/cross-view/ground_view_generation/data/dataset/proj_rgb/JAX_171 71_proj_rgb.png" \
+ --validation_prompt="street-view, panorama image" \
  --train_batch_size=2 \
  --num_train_epochs=100 \
- --tracker_project_name="controlnet-semantic" \
+ --tracker_project_name="controlnet-color" \
  --enable_xformers_memory_efficient_attention \
  --checkpointing_steps=5000 \
- --validation_steps=200 \
+ --validation_steps=1000 \
  --report_to wandb
