@@ -119,8 +119,8 @@ class Dataset(torch.utils.data.Dataset):
         elif name=='ours_color_new':
             for line in lines:
                 line=line.rstrip('\n')
-                pred_paths=glob.glob(os.path.join(ours_color_new,line+'*.png'))
-                pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                pred_paths=[os.path.join(ours_color_new,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
                 #pred_path=pred_paths[0]
                 self.pred_paths.append(pred_paths)
                 semantic_list=[]
@@ -133,8 +133,8 @@ class Dataset(torch.utils.data.Dataset):
         elif name=='ours_lines':
             for line in lines:
                 line=line.rstrip('\n')
-                pred_paths=glob.glob(os.path.join(ours_lines,line+'*.png'))
-                pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                pred_paths=[os.path.join(ours_lines,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
                 #pred_path=pred_paths[0]
                 self.pred_paths.append(pred_paths)
                 semantic_list=[]
@@ -147,8 +147,8 @@ class Dataset(torch.utils.data.Dataset):
         elif name=='ours_color_lines_new':
             for line in lines:
                 line=line.rstrip('\n')
-                pred_paths=glob.glob(os.path.join(ours_color_lines_new,line+'*.png'))
-                pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                pred_paths=[os.path.join(ours_color_lines_new,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
                 #pred_path=pred_paths[0]
                 self.pred_paths.append(pred_paths)
                 semantic_list=[]
@@ -161,8 +161,8 @@ class Dataset(torch.utils.data.Dataset):
         elif name=='ours_nolora':
             for line in lines:
                 line=line.rstrip('\n')
-                pred_paths=glob.glob(os.path.join(ours_nolora,line+'*.png'))
-                pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                pred_paths=[os.path.join(ours_nolora,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
                 #pred_path=pred_paths[0]
                 self.pred_paths.append(pred_paths)
                 semantic_list=[]

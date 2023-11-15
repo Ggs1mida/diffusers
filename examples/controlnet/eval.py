@@ -298,7 +298,7 @@ def eval_psnr_ssim_sharp():
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
     #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
     #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
-    dataset_names=['ours_color_lines_new']
+    dataset_names=['ours_nolora']
 
     for data_name in dataset_names:
         ssim_list=[]
@@ -352,8 +352,8 @@ def eval_psnr_ssim_sharp():
 def eval_layout():
     import os
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
-    dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
-    #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    dataset_names=['ours_color_new','ours_lines',"ours_color_lines_new","ours_nolora"]
 
     for data_name in dataset_names:
         precision_list=[]
@@ -578,11 +578,11 @@ if __name__ == "__main__":
     # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\street_rgb',
     # r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation',
     # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_facade_pair.txt')
-    extract_into_same_dir_controlnet(r'E:\tmp\ours_color_lines2',r'E:\tmp\ours_color_lines',render_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result\ours_color_lines_new_psnr.txt')
+    #extract_into_same_dir_controlnet(r'E:\tmp\ours_color_lines2',r'E:\tmp\ours_color_lines',render_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result\ours_color_lines_new_psnr.txt')
     #eval_building_perpix(fold_pred,fold_gt,render_list)
     #eval_psnr_ssim_sharp()
     #eval_semantic()
-    #eval_layout()
+    eval_layout()
     # img1=r'E:\tmp\ours_canny.png'
     # img2=r'E:\tmp\panogan_canny.png'
     # img_gt=r'E:\tmp\gt_canny.png'
