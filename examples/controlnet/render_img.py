@@ -1027,16 +1027,16 @@ def main():
     #                            )
 
     #render color & canny
-    render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
-                                r'E:\data\tmp\uae.png',
-                                lora_path,
-                                "street-view, panorama image, high resolution, dubai, united arab emirates",
-                                negetive_prompt)
-    render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
-                                r'E:\data\tmp\paris.png',
-                                lora_path,
-                                "street-view, panorama image, high resolution, paris, france",
-                                negetive_prompt)
+    # render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
+    #                             r'E:\data\tmp\uae.png',
+    #                             lora_path,
+    #                             "street-view, panorama image, high resolution, dubai, united arab emirates",
+    #                             negetive_prompt)
+    # render_controlnet_canny_color(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation_select\JAX_068 82_proj_rgb.png',
+    #                             r'E:\data\tmp\paris.png',
+    #                             lora_path,
+    #                             "street-view, panorama image, high resolution, paris, france",
+    #                             negetive_prompt)
 
     #render lineart
     # render_controlnet_lora_lineart(r'J:\xuningli\cross-view\ground_view_generation\data\tmp\sat_8170.png',

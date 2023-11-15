@@ -145,6 +145,7 @@ def segment_gt(in_dir,out_dir,render_list):
         shutil.copyfile(gt_path,os.path.join(out_dir,line.rstrip('\n')+'.jpg'))
 
 def segment_dir(in_dir,render_list):
+    import os
     # Loading a single model for all three tasks
     from transformers import OneFormerProcessor, OneFormerForUniversalSegmentation
     processor = OneFormerProcessor.from_pretrained("shi-labs/oneformer_ade20k_swin_large")
@@ -152,7 +153,7 @@ def segment_dir(in_dir,render_list):
     data_in=open(render_list,'r')
     lines=data_in.readlines()
     for id,line in enumerate(lines):
-        img_paths=glob.glob(os.path.join(in_dir,line.rstrip('\n')+"_sate_rgb_fake_B_final.png"))
+        img_paths=glob.glob(os.path.join(in_dir,line.rstrip('\n')+".png"))
         print(id)
         for img_path in img_paths:
             if 'seg.png' in img_path:
@@ -278,11 +279,26 @@ def extract_into_same_dir_sota(semantics_dir,sate_dir,pano_dir,crossmlp_dir,out_
     
     data_in.close()
 
+def extract_into_same_dir_controlnet(in_dir,out_dir,render_list,psnr_txt):
+    import os
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    psnr_arr=np.loadtxt(psnr_txt)
+    id_arr=np.argmax(psnr_arr,axis=1)
+    for id,line in enumerate(lines):
+        name=line.rstrip('\n')
+        idx=id_arr[id]
+        name1=name+'_{}'.format(idx)
+        shutil.copyfile(os.path.join(in_dir,"{}.png".format(name1)),os.path.join(out_dir,"{}.png".format(name)))
+
+
+
 def eval_psnr_ssim_sharp():
     import os
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
     #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
-    dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    dataset_names=['ours_color_lines_new']
 
     for data_name in dataset_names:
         ssim_list=[]
@@ -328,21 +344,94 @@ def eval_psnr_ssim_sharp():
         np.savetxt(os.path.join(out_dir,"{}_psnr.txt").format(data_name),psnr_arr)
         np.savetxt(os.path.join(out_dir,"{}_ssim.txt").format(data_name),ssim_arr)
 
-        np.savetxt(os.path.join(out_dir,"{}_canny_psnr.txt").format(data_name),psnr_canny_arr)
-        np.savetxt(os.path.join(out_dir,"{}_canny_ssim.txt").format(data_name),ssim_canny_arr)
+        # np.savetxt(os.path.join(out_dir,"{}_canny_psnr.txt").format(data_name),psnr_canny_arr)
+        # np.savetxt(os.path.join(out_dir,"{}_canny_ssim.txt").format(data_name),ssim_canny_arr)
 
-        print("{} : PSNR: {}, SSIM: {}, PSNR canny: {}, SSIM canny: {} ".format(data_name,np.mean(psnr_arr),np.mean(ssim_arr),np.mean(psnr_canny_arr),np.mean(ssim_canny_arr)))
+        print("{} : PSNR: {}, SSIM: {}".format(data_name,np.mean(psnr_arr),np.mean(ssim_arr)))
 
-def eval_semantic():
+def eval_layout():
     import os
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
     dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
     #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
 
     for data_name in dataset_names:
+        precision_list=[]
+        recall_list=[]
+        f1score_list=[]
+        iou_list=[]
+        dataset=Dataset(data_name)
+        dataloader = torch.utils.data.DataLoader(dataset) 
+        for id,data in enumerate(dataloader):
+            pred_paths=data[0]
+            gt_path=data[2][0]
+
+            img_gt = cv2.imread(gt_path)
+            gt_edge = cv2.Canny(img_gt,255,255)
+            ps=[]
+            rs=[]
+            fs=[]
+            ious=[]
+            for pred_path in pred_paths:
+                pred_path=pred_path[0]
+                img_pred = cv2.imread(pred_path)
+                pred_edge = cv2.Canny(img_pred,255,255)
+
+                mask_pred=pred_edge!=0
+                mask_gt=gt_edge!=0
+                intersect=np.sum(np.logical_and(mask_pred,mask_gt))
+                union=np.sum(np.logical_or(mask_pred,mask_gt))
+                iou=intersect/union
+                precision=intersect/np.sum(mask_pred)
+                recall=intersect/np.sum(mask_gt)
+                f1=2*(precision*recall)/(precision+recall)
+
+                ious.append(iou)
+                ps.append(precision)
+                rs.append(recall)
+                fs.append(f1)
+
+            precision_list.append(ps)
+            recall_list.append(rs)
+            f1score_list.append(fs)
+            iou_list.append(ious)
+        
+
+        precision_arr=np.array(precision_list)
+        recall_arr=np.array(recall_list)
+        fscore_arr=np.array(f1score_list)
+        ious_arr=np.array(iou_list)
+
+        np.savetxt(os.path.join(out_dir,"{}_precision.txt").format(data_name),precision_arr)
+        np.savetxt(os.path.join(out_dir,"{}_recall.txt").format(data_name),recall_arr)
+        np.savetxt(os.path.join(out_dir,"{}_fscore.txt").format(data_name),fscore_arr)
+        np.savetxt(os.path.join(out_dir,"{}_ious.txt").format(data_name),ious_arr)
+
+        print("{} : Precision: {}, Recall: {}, F1score: {}, IOU: {}".format(data_name,np.mean(precision_arr),np.mean(recall_arr),np.mean(fscore_arr),np.mean(ious_arr)))
+
+def eval_semantic():
+    import os
+    out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
+    dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    building_id=1
+    road_id=6
+    ground_id=13
+    side_id=11
+    tree_id=4
+    sky_id=2
+
+    for data_name in dataset_names:
         score_list=[]
         dataset=Dataset(data_name)
         dataloader = torch.utils.data.DataLoader(dataset) 
+        b_list=[]
+        s_list=[]
+        g_list=[]
+        r_list=[]
+        side_list=[]
+        t_list=[]
+        all_list=[]
         for id,data in enumerate(dataloader):
             pred_paths=data[0]
             seg_paths=data[1]
@@ -350,20 +439,84 @@ def eval_semantic():
             gt_path=data[2][0]
 
             img_gt = cv2.imread(gt_seg_path)
-            scores=[]
+            bs=[]
+            gs=[]
+            ss=[]
+            rs=[]
+            sides=[]
+            ts=[]
+            alls=[]
 
             for seg_path in seg_paths:
                 img_pred = cv2.imread(seg_path[0])
                 score=np.mean(img_pred==img_gt)
-                scores.append(score)
-            score_list.append(scores)
+                alls.append(score)
 
-        score_arr=np.array(score_list)
+                pred_mask=img_pred==building_id
+                gt_mask=img_gt==building_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                bs.append(np.sum(inter)/np.sum(union))
 
-        np.savetxt(os.path.join(out_dir,"{}_semantic.txt").format(data_name),score_arr)
+                pred_mask=img_pred==ground_id
+                gt_mask=img_gt==ground_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                gs.append(np.sum(inter)/np.sum(union))
 
-        print("{} : semantic: {}".format(data_name,np.mean(score_arr)))
+                pred_mask=img_pred==road_id
+                gt_mask=img_gt==road_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                rs.append(np.sum(inter)/np.sum(union))
 
+                pred_mask=img_pred==side_id
+                gt_mask=img_gt==side_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                sides.append(np.sum(inter)/np.sum(union))
+
+                pred_mask=img_pred==sky_id
+                gt_mask=img_gt==sky_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                ss.append(np.sum(inter)/np.sum(union))
+
+                pred_mask=img_pred==tree_id
+                gt_mask=img_gt==tree_id
+                inter=np.logical_and(pred_mask,gt_mask)
+                union=np.logical_or(pred_mask,gt_mask)
+                ts.append(np.sum(inter)/np.sum(union))
+
+
+
+            b_list.append(bs)
+            s_list.append(ss)
+            g_list.append(gs)
+            side_list.append(sides)
+            t_list.append(ts)
+            r_list.append(rs)
+            all_list.append(alls)
+
+        all_arr=np.array(all_list)
+        b_arr=np.array(b_list)
+        s_arr=np.array(s_list)
+        g_arr=np.array(g_list)
+        side_arr=np.array(side_list)
+        t_arr=np.array(t_list)
+        r_arr=np.array(r_list)
+
+
+        np.savetxt(os.path.join(out_dir,"{}_semantic_all.txt").format(data_name),all_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_build.txt").format(data_name),b_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_sky.txt").format(data_name),s_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_ground.txt").format(data_name),g_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_road.txt").format(data_name),r_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_tree.txt").format(data_name),t_arr)
+        np.savetxt(os.path.join(out_dir,"{}_semantic_sidewalk.txt").format(data_name),side_arr)
+
+
+        print("{} : semantic all: {}, build: {}, sky:{}, ground:{}".format(data_name,np.nanmean(all_arr),np.nanmean(b_arr),np.nanmean(s_arr),np.nanmean(g_arr)))
 
 def eval_iou():
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
@@ -411,6 +564,7 @@ if __name__ == "__main__":
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\pano_rgb',render_list)
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_semantics',render_list)
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_rgb',render_list)
+    #segment_dir(r'E:\tmp\ours_color',render_list)
 
     # extract_into_same_dir_sota(r'J:\xuningli\cross-view\ground_view_generation\data\dataset\proj_label',
     #     r'J:\xuningli\cross-view\ground_view_generation\data\dataset\sate_rgb',
@@ -424,9 +578,11 @@ if __name__ == "__main__":
     # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\street_rgb',
     # r'J:\xuningli\cross-view\ground_view_generation\data\experiment\abalation',
     # r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_facade_pair.txt')
+    extract_into_same_dir_controlnet(r'E:\tmp\ours_color_lines2',r'E:\tmp\ours_color_lines',render_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result\ours_color_lines_new_psnr.txt')
     #eval_building_perpix(fold_pred,fold_gt,render_list)
     #eval_psnr_ssim_sharp()
-    eval_semantic()
+    #eval_semantic()
+    #eval_layout()
     # img1=r'E:\tmp\ours_canny.png'
     # img2=r'E:\tmp\panogan_canny.png'
     # img_gt=r'E:\tmp\gt_canny.png'

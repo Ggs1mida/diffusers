@@ -281,7 +281,8 @@ def render_controlnet_canny_color_batch(in_dir,render_list,out_dir,controlnet_pa
     pipe = StableDiffusionControlNetPipeline.from_pretrained(
         "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
     )
-    pipe.unet.load_attn_procs(lora_path)
+    if lora_path:
+        pipe.unet.load_attn_procs(lora_path)
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     
@@ -291,6 +292,60 @@ def render_controlnet_canny_color_batch(in_dir,render_list,out_dir,controlnet_pa
     for line in lines:
         name=line.rstrip('\n')
         condition_img_path=os.path.join(in_dir,"proj_rgb",name+"_proj_rgb.png")
+        condition_image = load_image(condition_img_path)
+        generator = [torch.Generator(device="cpu").manual_seed(i) for i in range(5)]
+        images = pipe(
+            prompt=[prompt]*5,
+            image=condition_image,
+            negative_prompt=[negative_prompt]*5,
+            num_inference_steps=20,
+            generator=generator
+        ).images
+        for id,image in enumerate(images):
+            image.save(os.path.join(out_dir,"{}_{}.png".format(name,id)))
+
+def render_controlnet_canny_color_batchsingle(in_dir,render_list,out_dir,controlnet_path,lora_path,prompt,negative_prompt):
+    controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float16)
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
+    )
+    if lora_path:
+        pipe.unet.load_attn_procs(lora_path)
+    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    pipe.enable_model_cpu_offload()
+    
+    import os
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    for line in lines:
+        name=line.rstrip('\n')
+        condition_img_path=os.path.join(in_dir,"proj_rgb",name+"_proj_rgb.png")
+        condition_image = load_image(condition_img_path)
+        generator = [torch.Generator(device="cpu").manual_seed(0) ]
+        image = pipe(
+            prompt=prompt,
+            image=condition_image,
+            negative_prompt=negative_prompt,
+            num_inference_steps=20,
+            generator=generator
+        ).images[0]
+        image.save(os.path.join(out_dir,"{}.png".format(name)))
+
+def render_controlnet_lines_batch(in_dir,render_list,out_dir,controlnet_path,lora_path,prompt,negative_prompt):
+    controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float16)
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
+    )
+    pipe.unet.load_attn_procs(lora_path)
+    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    pipe.enable_model_cpu_offload()
+    
+    import os
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    for line in lines:
+        name=line.rstrip('\n')
+        condition_img_path=os.path.join(in_dir,"experiment","train","facade_lines",name+"_lines.png")
         condition_image = load_image(condition_img_path)
         generator = [torch.Generator(device="cpu").manual_seed(i) for i in range(5)]
         images = pipe(
@@ -362,7 +417,7 @@ def render_controlnet_sate_rgbline_batch(in_dir,render_list,out_dir,controlnet_r
             negative_prompt=[negative_prompt]*5,
             num_inference_steps=20,
             generator=generator,
-            controlnet_conditioning_scale=[1.0,1.0]
+            controlnet_conditioning_scale=[1,1]
         ).images
         for id,image in enumerate(images):
             image.save(os.path.join(out_dir,"{}_{}.png".format(name,id)))
@@ -397,24 +452,33 @@ def render_controlnet_sate_rgb_batch(in_dir,render_list,out_dir,controlnet_sate_
 
 
 def main():
-    prompt="street-view, panorama image, high resolution"
-    negetive_prompt="watermark, blury, artifacts, glare "
-    lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\jax_7868_pano_lora\checkpoint-70000'
+    prompt="street-view, panorama image"
+    negetive_prompt="watermark, blury, artifacts, glare"
+    #lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\jax_7868_pano_lora\checkpoint-70000'
+    lora_path=r'J:\xuningli\cross-view\ground_view_generation\code\outputs\jax_3535\checkpoint-55000'
+    #lora_path=""
     #lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\four_city\checkpoint-90000'
     dataset_dir_par=r'J:\xuningli\cross-view\ground_view_generation\data'
     dataset_dir=r'J:\xuningli\cross-view\ground_view_generation\data\dataset'
     test_list=r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_pair_test.txt'
-    controlnet_color=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb\checkpoint-60000\controlnet'
+    #controlnet_color=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb\checkpoint-60000\controlnet'
+    controlnet_color=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb_3535_continue\checkpoint-80000\controlnet'
+    controlnet_color_nolora=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb_3535_nolora\checkpoint-40000\controlnet'
     controlnet_sate=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_sate_rgb\checkpoint-60000\controlnet'
     controlnet_seg=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_label\checkpoint-65000\controlnet'
-    controlnet_line=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_facade_lines\checkpoint-60000\controlnet'
+    #controlnet_line=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_facade_lines\checkpoint-60000\controlnet'
+    controlnet_line=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb_3535_facade\checkpoint-65000\controlnet'
     
     
-    #render_controlnet_canny_color_batch(dataset_dir,test_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\proj_rgb',controlnet_color,lora_path,prompt,negetive_prompt)
+    #render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\ours_color_nolora',controlnet_color,lora_path,prompt,negetive_prompt)
 
-    render_controlnet_sate_rgbseg_batch(dataset_dir,test_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sate_rgb_seg',controlnet_seg,controlnet_sate,lora_path,prompt,negetive_prompt)
+    render_controlnet_canny_color_batchsingle(dataset_dir,test_list,r'E:\tmp\ours_nolora',controlnet_color_nolora,"",prompt,negetive_prompt)
 
-    #render_controlnet_sate_rgbline_batch(dataset_dir_par,test_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line',controlnet_color,controlnet_line,lora_path,prompt,negetive_prompt)
+    #render_controlnet_lines_batch(dataset_dir_par,test_list,r'E:\tmp\ours_lines',controlnet_line,lora_path,prompt,negetive_prompt)
+
+    #render_controlnet_sate_rgbseg_batch(dataset_dir,test_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\sate_rgb_seg',controlnet_seg,controlnet_sate,lora_path,prompt,negetive_prompt)
+
+    #render_controlnet_sate_rgbline_batch(dataset_dir_par,test_list,r'E:\tmp\ours_color_lines',controlnet_color,controlnet_line,lora_path,prompt,negetive_prompt)
 
     #render_controlnet_sate_rgb_batch(dataset_dir,test_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_sate_rgb1',controlnet_sate,lora_path,prompt,negetive_prompt)
 
