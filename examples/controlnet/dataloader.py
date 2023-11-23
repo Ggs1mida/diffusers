@@ -262,7 +262,7 @@ class Dataset(torch.utils.data.Dataset):
 
 #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic','ours_color_new','ours_lines',"ours_color_line_new","ours_nolora"]
 #dataset_names=['ours_color_new','ours_lines',"ours_color_lines_new","ours_nolora"]
-#dataset_names=['prior_hk','prior_dubai','prior_paris','prior_london']
+dataset_names=['prior_hk','prior_dubai','prior_paris','prior_london']
 dataset_names=['nopaired_sem','nopaired_rgb']
 dataset=Dataset(dataset_names[0])
 dataloader = torch.utils.data.DataLoader(dataset)
