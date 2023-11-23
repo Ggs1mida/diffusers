@@ -988,9 +988,13 @@ def render_controlnet_lora_lineart(img_path,prompt,negative_prompt,lora_path,out
     #writer.add_images('output',imgs,dataformats='NCHW')
     #image_grid(output.images, 2, 2)
 
+def batch_render(in_dir,render_list,lora_path,prompt,negative_prompt):
+
+
+
 def main():
     prompt="street-view, panorama image, high resolution"
-    negetive_prompt="watermark, blury, artifacts, glare "
+    negetive_prompt="watermark, blury, artifacts, glare"
     #lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\jax_7868_pano_lora\checkpoint-70000'
     lora_path=r'J:\xuningli\cross-view\ground_view_generation\outputs\four_city\checkpoint-90000'
     

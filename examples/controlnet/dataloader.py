@@ -17,7 +17,13 @@ class Dataset(torch.utils.data.Dataset):
         ours_lines=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_line'
         ours_color_lines_new=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_proj_rgb_line_new'
         ours_nolora=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\ours_nolora'
-
+        prior_hk=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\priors\hk'
+        prior_dubai=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\priors\dubai'
+        prior_paris=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\priors\paris'
+        prior_london=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\priors\london'
+        prior_gt=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\priors\gt'
+        nopaired_sem=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\nopaired\sem'
+        nopaired_rgb=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\nopaired\rgb'
 
         render_list=r'J:\xuningli\cross-view\ground_view_generation\data\dataset\rgb_seg_pair_test.txt'
         self.name=name
@@ -172,6 +178,78 @@ class Dataset(torch.utils.data.Dataset):
                 self.pred_semantic_paths.append(semantic_list)
                 self.gt_paths.append(os.path.join(gt_dir,line+".jpg"))
                 self.gt_semantic_paths.append(os.path.join(gt_dir,line+"_seg.png"))
+        elif name=='nopaired_sem':
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_paths=[os.path.join(nopaired_sem,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                #pred_path=pred_paths[0]
+                self.pred_paths.append(pred_paths)
+                semantic_list=[]
+                for pred_path in pred_paths:
+                    semantic_list.append(pred_path[:-4]+'_seg.png')
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(os.path.join(gt_dir,line+".jpg"))
+                self.gt_semantic_paths.append(os.path.join(gt_dir,line+"_seg.png"))
+        elif name=='nopaired_rgb':
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_paths=[os.path.join(nopaired_rgb,line+'.png')]
+                #pred_paths=[file_path for file_path in pred_paths if "seg" not in file_path]
+                #pred_path=pred_paths[0]
+                self.pred_paths.append(pred_paths)
+                semantic_list=[]
+                for pred_path in pred_paths:
+                    semantic_list.append(pred_path[:-4]+'_seg.png')
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(os.path.join(gt_dir,line+".jpg"))
+                self.gt_semantic_paths.append(os.path.join(gt_dir,line+"_seg.png"))
+        elif name=='prior_hk':
+            gt_paths=glob.glob(os.path.join(prior_gt,"*"))
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_path=os.path.join(prior_hk,line+'.png')
+                self.pred_paths.append(pred_path)
+                semantic_list=[]
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(gt_paths)
+                self.gt_semantic_paths.append([])
+        elif name=='prior_dubai':
+            gt_paths=glob.glob(os.path.join(prior_gt,"*"))
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_path=os.path.join(prior_dubai,line+'.png')
+                self.pred_paths.append(pred_path)
+                semantic_list=[]
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(gt_paths)
+                self.gt_semantic_paths.append([])
+        elif name=='prior_paris':
+            gt_paths=glob.glob(os.path.join(prior_gt,"*"))
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_path=os.path.join(prior_paris,line+'.png')
+                self.pred_paths.append(pred_path)
+                semantic_list=[]
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(gt_paths)
+                self.gt_semantic_paths.append([])
+        elif name=='prior_london':
+            gt_paths=glob.glob(os.path.join(prior_gt,"*"))
+            for line in lines:
+                line=line.rstrip('\n')
+                pred_path=os.path.join(prior_london,line+'.png')
+                self.pred_paths.append(pred_path)
+                semantic_list=[]
+                #semantic_path=semantic_list[0]
+                self.pred_semantic_paths.append(semantic_list)
+                self.gt_paths.append(gt_paths)
+                self.gt_semantic_paths.append([])
         data_in.close()
 
   def __len__(self):
@@ -183,8 +261,10 @@ class Dataset(torch.utils.data.Dataset):
         return self.pred_paths[index],self.pred_semantic_paths[index],self.gt_paths[index],self.gt_semantic_paths[index]
 
 #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic','ours_color_new','ours_lines',"ours_color_line_new","ours_nolora"]
-dataset_names=['ours_color_new','ours_lines',"ours_color_lines_new","ours_nolora"]
-dataset=Dataset(dataset_names[3])
+#dataset_names=['ours_color_new','ours_lines',"ours_color_lines_new","ours_nolora"]
+#dataset_names=['prior_hk','prior_dubai','prior_paris','prior_london']
+dataset_names=['nopaired_sem','nopaired_rgb']
+dataset=Dataset(dataset_names[0])
 dataloader = torch.utils.data.DataLoader(dataset)
 for id,data in enumerate(dataloader):
     pred_path=data[0][0]

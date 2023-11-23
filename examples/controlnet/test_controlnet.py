@@ -293,16 +293,16 @@ def render_controlnet_canny_color_batch(in_dir,render_list,out_dir,controlnet_pa
         name=line.rstrip('\n')
         condition_img_path=os.path.join(in_dir,"proj_rgb",name+"_proj_rgb.png")
         condition_image = load_image(condition_img_path)
-        generator = [torch.Generator(device="cpu").manual_seed(i) for i in range(5)]
+        generator = [torch.Generator(device="cpu").manual_seed(0)]
         images = pipe(
-            prompt=[prompt]*5,
+            prompt=[prompt],
             image=condition_image,
-            negative_prompt=[negative_prompt]*5,
+            negative_prompt=[negative_prompt],
             num_inference_steps=20,
             generator=generator
         ).images
         for id,image in enumerate(images):
-            image.save(os.path.join(out_dir,"{}_{}.png".format(name,id)))
+            image.save(os.path.join(out_dir,"{}.png".format(name)))
 
 def render_controlnet_canny_color_batchsingle(in_dir,render_list,out_dir,controlnet_path,lora_path,prompt,negative_prompt):
     controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float16)
@@ -390,6 +390,36 @@ def render_controlnet_sate_rgbseg_batch(in_dir,render_list,out_dir,controlnet_se
         for id,image in enumerate(images):
             image.save(os.path.join(out_dir,"{}_{}.png".format(name,id)))
 
+def render_controlnet_seg_batch(in_dir,render_list,out_dir,controlnet_seg_path,lora_path,prompt,negative_prompt):
+    controlnet_seg = ControlNetModel.from_pretrained(controlnet_seg_path, torch_dtype=torch.float16)
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        "runwayml/stable-diffusion-v1-5", controlnet=controlnet_seg, torch_dtype=torch.float16
+    )
+    if lora_path:
+        pipe.unet.load_attn_procs(lora_path)
+    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    pipe.enable_model_cpu_offload()
+    
+    import os
+    data_in=open(render_list,'r')
+    lines=data_in.readlines()
+    for line in lines:
+        name=line.rstrip('\n')
+        condition_seg_path=os.path.join(in_dir,"proj_label",name+"_proj_label.png")
+        condition_seg = load_image(condition_seg_path)
+        conditions=condition_seg
+        generator = [torch.Generator(device="cpu").manual_seed(0) ]
+        images = pipe(
+            [prompt],
+            conditions,
+            negative_prompt=[negative_prompt],
+            num_inference_steps=20,
+            generator=generator
+        ).images
+        for id,image in enumerate(images):
+            image.save(os.path.join(out_dir,"{}.png".format(name)))
+
+
 def render_controlnet_sate_rgbline_batch(in_dir,render_list,out_dir,controlnet_rgb_path,controlnet_line_path,lora_path,prompt,negative_prompt):
     controlnet_line = ControlNetModel.from_pretrained(controlnet_line_path, torch_dtype=torch.float16)
     controlnet_rgb = ControlNetModel.from_pretrained(controlnet_rgb_path, torch_dtype=torch.float16)
@@ -470,9 +500,20 @@ def main():
     controlnet_line=r'J:\xuningli\cross-view\ground_view_generation\code\diffusers\examples\controlnet\out_proj_rgb_3535_facade\checkpoint-65000\controlnet'
     
     
-    #render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\ours_color_nolora',controlnet_color,lora_path,prompt,negetive_prompt)
+    # render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\priors\hk',"ghoskno/Color-Canny-Controlnet-model",lora_path,"street-view, panorama image, hong kong",negetive_prompt)
 
-    render_controlnet_canny_color_batchsingle(dataset_dir,test_list,r'E:\tmp\ours_nolora',controlnet_color_nolora,"",prompt,negetive_prompt)
+    # render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\priors\dubai',"ghoskno/Color-Canny-Controlnet-model",lora_path,"street-view, panorama image, dubai, united arab emirates",negetive_prompt)
+
+    # render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\priors\london',"ghoskno/Color-Canny-Controlnet-model",lora_path,"street-view, panorama image, london, england, british",negetive_prompt)
+
+    # render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\priors\paris',"ghoskno/Color-Canny-Controlnet-model",lora_path,"street-view, panorama image,  paris",negetive_prompt)
+
+
+    render_controlnet_canny_color_batch(dataset_dir,test_list,r'E:\tmp\nopaired\rgb',"ghoskno/Color-Canny-Controlnet-model",lora_path,prompt,negetive_prompt)
+
+    render_controlnet_seg_batch(dataset_dir,test_list,r'E:\tmp\nopaired\sem',"lllyasviel/control_v11p_sd15_seg",lora_path,prompt,negetive_prompt)
+
+    #render_controlnet_canny_color_batchsingle(dataset_dir,test_list,r'E:\tmp\ours_nolora',controlnet_color_nolora,"",prompt,negetive_prompt)
 
     #render_controlnet_lines_batch(dataset_dir_par,test_list,r'E:\tmp\ours_lines',controlnet_line,lora_path,prompt,negetive_prompt)
 

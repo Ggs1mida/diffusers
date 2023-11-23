@@ -149,7 +149,7 @@ def segment_dir(in_dir,render_list):
     # Loading a single model for all three tasks
     from transformers import OneFormerProcessor, OneFormerForUniversalSegmentation
     processor = OneFormerProcessor.from_pretrained("shi-labs/oneformer_ade20k_swin_large")
-    model = OneFormerForUniversalSegmentation.from_pretrained("shi-labs/oneformer_ade20k_swin_large")
+    model = OneFormerForUniversalSegmentation.from_pretrained("shi-labs/oneformer_ade20k_swin_large").to("cuda")
     data_in=open(render_list,'r')
     lines=data_in.readlines()
     for id,line in enumerate(lines):
@@ -161,10 +161,10 @@ def segment_dir(in_dir,render_list):
             if os.path.exists(img_path[:-4]+"_seg.png"):
                 continue
             image = Image.open(img_path)
-            semantic_inputs = processor(images=image, task_inputs=["semantic"], return_tensors="pt")
+            semantic_inputs = processor(images=image, task_inputs=["semantic"], return_tensors="pt").to("cuda")
             semantic_outputs = model(**semantic_inputs)
             # pass through image_processor for postprocessing
-            predicted_semantic_map = processor.post_process_semantic_segmentation(semantic_outputs, target_sizes=[image.size[::-1]])[0].numpy()
+            predicted_semantic_map = processor.post_process_semantic_segmentation(semantic_outputs, target_sizes=[image.size[::-1]])[0].cpu().numpy()
             cv2.imwrite(img_path[:-4]+"_seg.png",predicted_semantic_map)
 
 def eval_perpix(fold_pred,fold_gt,render_list):
@@ -291,8 +291,6 @@ def extract_into_same_dir_controlnet(in_dir,out_dir,render_list,psnr_txt):
         name1=name+'_{}'.format(idx)
         shutil.copyfile(os.path.join(in_dir,"{}.png".format(name1)),os.path.join(out_dir,"{}.png".format(name)))
 
-
-
 def eval_psnr_ssim_sharp():
     import os
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
@@ -412,8 +410,8 @@ def eval_layout():
 def eval_semantic():
     import os
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
-    dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
-    #dataset_names=['pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    #dataset_names=['ours_color_lines','ours_color','ours_satergb_seg','pano_rgb','pano_semantic','crossmlp_rgb','crossmlp_semantic']
+    dataset_names=['ours_color_new','ours_lines',"ours_color_lines_new","ours_nolora"]
     building_id=1
     road_id=6
     ground_id=13
@@ -516,7 +514,7 @@ def eval_semantic():
         np.savetxt(os.path.join(out_dir,"{}_semantic_sidewalk.txt").format(data_name),side_arr)
 
 
-        print("{} : semantic all: {}, build: {}, sky:{}, ground:{}".format(data_name,np.nanmean(all_arr),np.nanmean(b_arr),np.nanmean(s_arr),np.nanmean(g_arr)))
+        print("{} : semantic all: {}, build: {}, sky:{}, road:{}".format(data_name,np.nanmean(all_arr),np.nanmean(b_arr),np.nanmean(s_arr),np.nanmean(r_arr)))
 
 def eval_iou():
     out_dir=r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result'
@@ -565,6 +563,9 @@ if __name__ == "__main__":
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_semantics',render_list)
     # segment_dir(r'J:\xuningli\cross-view\ground_view_generation\data\experiment\crossmlp_rgb',render_list)
     #segment_dir(r'E:\tmp\ours_color',render_list)
+    # segment_dir(r'E:\tmp\ours_line',render_list)
+    # segment_dir(r'E:\tmp\ours_nolora',render_list)
+    # segment_dir(r'E:\tmp\ours_proj_rgb_line_new',render_list)
 
     # extract_into_same_dir_sota(r'J:\xuningli\cross-view\ground_view_generation\data\dataset\proj_label',
     #     r'J:\xuningli\cross-view\ground_view_generation\data\dataset\sate_rgb',
@@ -581,8 +582,8 @@ if __name__ == "__main__":
     #extract_into_same_dir_controlnet(r'E:\tmp\ours_color_lines2',r'E:\tmp\ours_color_lines',render_list,r'J:\xuningli\cross-view\ground_view_generation\data\experiment\eval_result\ours_color_lines_new_psnr.txt')
     #eval_building_perpix(fold_pred,fold_gt,render_list)
     #eval_psnr_ssim_sharp()
-    #eval_semantic()
-    eval_layout()
+    eval_semantic()
+    #eval_layout()
     # img1=r'E:\tmp\ours_canny.png'
     # img2=r'E:\tmp\panogan_canny.png'
     # img_gt=r'E:\tmp\gt_canny.png'
